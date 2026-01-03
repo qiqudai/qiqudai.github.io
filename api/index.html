@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+        content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0,viewport-fit=cover">
+    <title>安全访问检测</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f2f4f6;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* 禁止滚动 */
+        }
+
+        .card {
+            background: white;
+            width: 85%;
+            max-width: 360px;
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        .icon-shield {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        h1 {
+            font-size: 20px;
+            color: #333;
+            margin: 0 0 10px 0;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 14px;
+            color: #888;
+            margin: 0 0 30px 0;
+            line-height: 1.5;
+        }
+
+        .btn-action {
+            display: block;
+            width: 100%;
+            padding: 14px 0;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-action:disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        .btn-copy {
+            display: block;
+            width: 100%;
+            padding: 14px 0;
+            margin-top: 15px;
+            background: #f5f7f9;
+            color: #666;
+            border: 1px solid #e1e4e8;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-copy:active {
+            background: #e1e4e8;
+        }
+        .meta-info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        /* 微信提示层 */
+        .wx-tip-mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            display: none;
+        }
+
+        .wx-tip-content {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 16px;
+            line-height: 1.6;
+            text-align: right;
+        }
+
+        .arrow-icon {
+            font-size: 40px;
+            animation: bounce 1.5s infinite ease-in-out;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <div class="icon-shield">🛡️</div>
+        <h1>即将访问外部链接</h1>
+        <p>该链接已经过安全检测<br>点击下方按钮继续访问</p>
+        <button class="btn-action" onclick="checkAndGo()">立即跳转</button>
+        <button class="btn-copy" onclick="copyPageUrl()">🔗 复制链接</button>
+        <div class="meta-info">Safe Link Protection</div>
+    </div>
+
+    <!-- 微信引导遮罩 -->
+    <div class="wx-tip-mask" id="wxMask" onclick="this.style.display='none'">
+        <div class="wx-tip-content">
+            <span class="arrow-icon">⤴️</span>
+            <div>
+                点击右上角菜单<br>
+                选择在 <strong>浏览器</strong> 打开
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 复制当前页面链接
+        function copyPageUrl() {
+            var url = window.location.href;
+            var btn = document.querySelector('.btn-copy');
+            var originalText = btn.innerHTML;
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(function () {
+                    showSuccess();
+                }).catch(function () {
+                    fallbackCopy(url);
+                });
+            } else {
+                fallbackCopy(url);
+            }
+
+            function fallbackCopy(text) {
+                var textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showSuccess();
+                } catch (err) {
+                    btn.innerText = "❌ 复制失败";
+                }
+                document.body.removeChild(textArea);
+            }
+
+            function showSuccess() {
+                btn.innerHTML = "✅ 已复制";
+                btn.style.color = "#28a745";
+                btn.style.borderColor = "#28a745";
+                setTimeout(function () {
+                    btn.innerHTML = originalText;
+                    btn.style.color = "#666";
+                    btn.style.borderColor = "#e1e4e8";
+                }, 2000);
+            }
+        }
+
+        function checkAndGo() {
+            var btn = document.querySelector('.btn-action');
+            btn.innerText = "正在验证...";
+            btn.disabled = true;
+
+            var ua = navigator.userAgent.toLowerCase();
+            // 仅检测微信 (micromessenger)，不再拦截 QQ
+            var isWeixin = ua.indexOf('micromessenger') != -1;
+
+            // 获取参数 (兼容旧版 url= 和新版 data=)
+            var urlParams = new URLSearchParams(window.location.search);
+            var targetUrl = "";
+
+            // 1. 尝试读取新版 data 参数
+            var dataParam = urlParams.get('data');
+            if (dataParam) {
+                try {
+                    var jsonStr = decodeURIComponent(atob(dataParam));
+                    var payload = JSON.parse(jsonStr);
+                    targetUrl = payload.t;
+                } catch (e) { console.error("Data parse error", e); }
+            }
+            // 2. 如果没有 data，尝试读取旧版 url 参数 (向后兼容)
+            else {
+                var oldUrlParam = urlParams.get('url');
+                if (oldUrlParam) {
+                    try {
+                        targetUrl = decodeURIComponent(atob(oldUrlParam));
+                    } catch (e) { console.error("Old url parse error", e); }
+                }
+            }
+
+            setTimeout(function () {
+                if (isWeixin) {
+                    document.getElementById('wxMask').style.display = 'block';
+                    btn.innerText = "立即跳转";
+                    btn.disabled = false;
+                } else {
+                    if (targetUrl) {
+                        location.href = targetUrl;
+                    } else {
+                        btn.innerText = "链接无效";
+                        btn.style.background = "#ff3b30";
+                    }
+                }
+            }, 500);
+        }
+
+        // 页面加载完成后，检查是否需要自动跳转
+        window.onload = function () {
+            var urlParams = new URLSearchParams(window.location.search);
+            var dataParam = urlParams.get('data');
+            var mode = 'click'; // 默认模式
+
+            if (dataParam) {
+                try {
+                    var jsonStr = decodeURIComponent(atob(dataParam));
+                    var payload = JSON.parse(jsonStr);
+                    //这一行是关键，读取配置的模式
+                    if (payload.m) mode = payload.m;
+                } catch (e) { }
+            }
+
+            // 如果是自动模式，延迟 800ms 后自动执行
+            if (mode === 'direct') {
+                var btn = document.querySelector('.btn-action');
+                // 修改一下文案，让用户知道是自动的
+                btn.innerText = "正在安全检测...";
+
+                setTimeout(function () {
+                    checkAndGo();
+                }, 800);
+            }
+        };
+    </script>
+
+    <script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+    <script>LA.init({ id: "K8YSQIj3WDtj9gG6", ck: "K8YSQIj3WDtj9gG6" })</script>
+</body>
+
+</html>
